@@ -215,6 +215,11 @@
     grid-template-columns: 1fr;
   }
 
+  .cart-items,
+  .cart-summary {
+    padding: 1.25rem;
+  }
+
   .cart-summary {
     position: static;
   }
@@ -226,5 +231,28 @@
   .cart-item img {
     width: 80px;
     height: 80px;
+  }
+}
+
+@media (max-width: 480px) {
+  .back-link,
+  .cart-container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .cart-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .item-total {
+    text-align: left;
+    min-width: 0;
+  }
+
+  .quantity-control {
+    width: 100%;
+    justify-content: space-between;
   }
 }

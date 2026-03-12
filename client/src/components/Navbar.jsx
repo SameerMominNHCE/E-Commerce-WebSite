@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FiMenu, FiX, FiShoppingCart, FiUser, FiLogOut, FiSearch } from 'react-icons/fi'
 import { motion } from 'framer-motion'
@@ -8,10 +8,25 @@ import '../styles/Navbar.css'
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const userMenuRef = useRef(null)
   const navigate = useNavigate()
   const { user, logout, isAuthenticated } = useAuth()
   const { getTotalItems } = useCart()
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -65,20 +80,39 @@ const Navbar = () => {
                 </Link>
               )}
 
-              <div className="user-menu">
-                <button className="user-btn">
+              <div
+                className={`user-menu ${isUserMenuOpen ? 'open' : ''}`}
+                ref={userMenuRef}
+              >
+                <button
+                  className="user-btn"
+                  type="button"
+                  onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                >
                   <FiUser /> {user?.name.split(' ')[0]}
                 </button>
                 <div className="dropdown">
-                  <Link to="/profile">Profile</Link>
-                  <Link to="/orders">My Orders</Link>
+                  <Link to="/profile" onClick={() => setIsUserMenuOpen(false)}>
+                    Profile
+                  </Link>
+                  <Link to="/orders" onClick={() => setIsUserMenuOpen(false)}>
+                    My Orders
+                  </Link>
 
                   {/* SHOW ADMIN IN DROPDOWN */}
                   {user?.role === 'admin' && (
-                    <Link to="/admin">Admin Dashboard</Link>
+                    <Link to="/admin" onClick={() => setIsUserMenuOpen(false)}>
+                      Admin Dashboard
+                    </Link>
                   )}
 
-                  <button onClick={logout}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout()
+                      setIsUserMenuOpen(false)
+                    }}
+                  >
                     <FiLogOut /> Logout
                   </button>
                 </div>

@@ -2,7 +2,7 @@ import { FiCheck, FiPackage, FiTruck, FiHome } from 'react-icons/fi'
 import { motion } from 'framer-motion'
 import '../styles/OrderTracker.css'
 
-const OrderTracker = ({ status, history }) => {
+const OrderTracker = ({ status, history, trackingNumber, estimatedDelivery }) => {
   const statuses = ['pending', 'confirmed', 'shipped', 'delivered']
   const currentStatusIndex = statuses.indexOf(status)
 
@@ -22,6 +22,17 @@ const OrderTracker = ({ status, history }) => {
 
   return (
     <div className="order-tracker">
+      {(trackingNumber || estimatedDelivery) && (
+        <div className="shipment-meta">
+          {trackingNumber && <p><strong>Tracking:</strong> {trackingNumber}</p>}
+          {estimatedDelivery && (
+            <p>
+              <strong>Estimated Delivery:</strong> {new Date(estimatedDelivery).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="tracker-steps">
         {statuses.map((s, idx) => (
           <motion.div

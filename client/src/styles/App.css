@@ -29,6 +29,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: #f8f9fa;
   color: var(--dark);
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
 }
 
 a {
@@ -77,5 +85,9 @@ select {
 @media (max-width: 768px) {
   html {
     font-size: 14px;
+  }
+
+  .container {
+    padding: 0 16px;
   }
 }

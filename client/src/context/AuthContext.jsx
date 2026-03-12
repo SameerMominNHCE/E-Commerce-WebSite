@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import axios from 'axios'
+import {
+  getMeRequest,
+  loginRequest,
+  registerRequest,
+  updateProfileRequest
+} from '../features/auth/api/auth.api'
 
 const AuthContext = createContext()
 
@@ -18,9 +23,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUser = async () => {
     try {
-      const response = await axios.get('/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await getMeRequest()
       setUser(response.data)
     } catch (err) {
       setToken(null)
@@ -32,7 +35,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password })
+      const response = await loginRequest({ email, password })
       const { token, user } = response.data
       setToken(token)
       setUser(user)
@@ -45,7 +48,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
-      const response = await axios.post('/api/auth/register', { 
+      const response = await registerRequest({ 
         name, 
         email, 
         password 
@@ -68,9 +71,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (updates) => {
     try {
-      const response = await axios.put('/api/auth/profile', updates, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await updateProfileRequest(updates)
       setUser(response.data)
       return true
     } catch (err) {

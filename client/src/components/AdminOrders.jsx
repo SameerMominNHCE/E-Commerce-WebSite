@@ -1,17 +1,23 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FiCheck, FiX, FiTruck } from 'react-icons/fi'
-import axios from 'axios'
-import { useAuth } from '../context/AuthContext'
+import { FiCheck, FiDownload, FiExternalLink, FiX, FiTruck } from 'react-icons/fi'
+import {
+  exportAdminOrdersCsvRequest,
+  getAdminOrders,
+  updateAdminOrderStatus
+} from '../features/admin/api/admin.api'
 import { toast } from 'react-toastify'
+import { getTrackingUrl } from '../shared/utils/tracking'
 import '../styles/AdminOrders.css'
 
 const AdminOrders = () => {
-  const { token } = useAuth()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(false)
   const [filterStatus, setFilterStatus] = useState('all')
   const [selectedOrder, setSelectedOrder] = useState(null)
+  const [trackingSearch, setTrackingSearch] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
 
   const statuses = [
     { value: 'all', label: 'All Orders' },
@@ -30,10 +36,7 @@ const AdminOrders = () => {
     try {
       setLoading(true)
       const params = filterStatus !== 'all' ? { status: filterStatus } : {}
-      const response = await axios.get('/api/orders', {
-        params,
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await getAdminOrders(params)
       setOrders(response.data.orders)
     } catch (err) {
       toast.error('Failed to fetch orders')
@@ -45,14 +48,23 @@ const AdminOrders = () => {
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       const message = `Order ${newStatus}`
-      await axios.put(
-        `/api/orders/${orderId}/status`,
-        { status: newStatus, message },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      toast.success(`Order status updated to ${newStatus}`)
-      fetchOrders()
-      setSelectedOrder(null)
+      const response = await updateAdminOrderStatus(orderId, { status: newStatus, message })
+      const updatedOrder = response.data
+
+      setOrders((prev) => prev.map((order) => (order._id === orderId ? updatedOrder : order)))
+      setSelectedOrder((prev) => (prev && prev._id === orderId ? updatedOrder : prev))
+
+      if (newStatus === 'shipped' && updatedOrder.trackingNumber) {
+        toast.success(`Order shipped. Tracking: ${updatedOrder.trackingNumber}`)
+      } else if (newStatus === 'delivered') {
+        toast.success('Order marked as delivered')
+      } else {
+        toast.success(`Order status updated to ${newStatus}`)
+      }
+
+      if (newStatus !== 'shipped') {
+        fetchOrders()
+      }
     } catch (err) {
       toast.error('Failed to update order status')
     }
@@ -67,6 +79,78 @@ const AdminOrders = () => {
       cancelled: []
     }
     return statusFlow[currentStatus] || []
+  }
+
+  const copyTracking = async (trackingNumber) => {
+    if (!trackingNumber) {
+      toast.info('Tracking number is not available yet')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(trackingNumber)
+      toast.success('Tracking number copied')
+    } catch (err) {
+      toast.error('Failed to copy tracking number')
+    }
+  }
+
+  const openTracking = (trackingNumber) => {
+    const trackingUrl = getTrackingUrl(trackingNumber)
+    if (!trackingUrl) {
+      toast.info('Tracking link is not available yet')
+      return
+    }
+
+    window.open(trackingUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  const normalizedSearch = trackingSearch.trim().toLowerCase()
+  const displayedOrders = orders.filter((order) => {
+    const createdAt = new Date(order.createdAt)
+    const fromPass = fromDate ? createdAt >= new Date(fromDate) : true
+    const toPass = toDate
+      ? createdAt <= new Date(new Date(toDate).setHours(23, 59, 59, 999))
+      : true
+
+    if (!fromPass || !toPass) return false
+    if (!normalizedSearch) return true
+
+    return (
+      order.orderId?.toLowerCase().includes(normalizedSearch) ||
+      order.trackingNumber?.toLowerCase().includes(normalizedSearch) ||
+      order.shippingAddress?.name?.toLowerCase().includes(normalizedSearch)
+    )
+  })
+
+  const exportOrdersCsv = async () => {
+    if (!orders.length) {
+      toast.info('No orders available to export')
+      return
+    }
+
+    try {
+      const params = {
+        status: filterStatus,
+        search: trackingSearch.trim(),
+        from: fromDate,
+        to: toDate
+      }
+
+      const response = await exportAdminOrdersCsvRequest(params)
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `orders_export_${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+      toast.success('Orders exported to CSV')
+    } catch (err) {
+      toast.error('Failed to export CSV')
+    }
   }
 
   return (
@@ -84,6 +168,32 @@ const AdminOrders = () => {
             {status.label}
           </motion.button>
         ))}
+
+        <input
+          type="text"
+          className="tracking-search"
+          placeholder="Search by order ID, tracking, customer"
+          value={trackingSearch}
+          onChange={(e) => setTrackingSearch(e.target.value)}
+        />
+
+        <input
+          type="date"
+          className="date-filter"
+          value={fromDate}
+          onChange={(e) => setFromDate(e.target.value)}
+        />
+
+        <input
+          type="date"
+          className="date-filter"
+          value={toDate}
+          onChange={(e) => setToDate(e.target.value)}
+        />
+
+        <button type="button" className="export-btn" onClick={exportOrdersCsv}>
+          <FiDownload /> Export CSV
+        </button>
       </div>
 
       {/* Orders Table */}
@@ -94,7 +204,7 @@ const AdminOrders = () => {
       >
         {loading ? (
           <div className="loading">Loading orders...</div>
-        ) : orders.length > 0 ? (
+        ) : displayedOrders.length > 0 ? (
           <div className="table-wrapper">
             <table className="orders-table">
               <thead>
@@ -103,12 +213,13 @@ const AdminOrders = () => {
                   <th>Customer</th>
                   <th>Amount</th>
                   <th>Status</th>
+                  <th>Tracking</th>
                   <th>Date</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => (
+                {displayedOrders.map((order) => (
                   <motion.tr
                     key={order._id}
                     initial={{ opacity: 0, y: 10 }}
@@ -120,8 +231,12 @@ const AdminOrders = () => {
                     </td>
                     <td>
                       <div className="customer-info">
-                        <p className="customer-name">{order.shippingAddress?.name}</p>
-                        <p className="customer-email">{order.shippingAddress?.email}</p>
+                        <p className="customer-name">
+                          {order.shippingAddress?.name || order.userId?.name || 'Customer'}
+                        </p>
+                        <p className="customer-email">
+                          {order.shippingAddress?.email || order.userId?.email || 'N/A'}
+                        </p>
                       </div>
                     </td>
                     <td className="amount">
@@ -130,18 +245,65 @@ const AdminOrders = () => {
                     <td>
                       <StatusBadge status={order.orderStatus} />
                     </td>
+                    <td className="tracking-col">
+                      {order.trackingNumber ? (
+                        <div className="tracking-with-copy">
+                          <span className="tracking-chip">{order.trackingNumber}</span>
+                          <button
+                            type="button"
+                            className="copy-tracking-btn"
+                            onClick={() => copyTracking(order.trackingNumber)}
+                          >
+                            Copy
+                          </button>
+                          <button
+                            type="button"
+                            className="copy-tracking-btn"
+                            onClick={() => openTracking(order.trackingNumber)}
+                          >
+                            <FiExternalLink />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="tracking-empty">-</span>
+                      )}
+                    </td>
                     <td className="date">
                       {new Date(order.createdAt).toLocaleDateString()}
                     </td>
                     <td>
-                      <motion.button
-                        className="view-btn"
-                        onClick={() => setSelectedOrder(order)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        View Details
-                      </motion.button>
+                      <div className="order-actions-inline">
+                        {order.orderStatus === 'confirmed' && (
+                          <motion.button
+                            className="ship-btn"
+                            onClick={() => handleUpdateStatus(order._id, 'shipped')}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <FiTruck /> Mark Shipped
+                          </motion.button>
+                        )}
+
+                        {order.orderStatus === 'shipped' && (
+                          <motion.button
+                            className="deliver-btn"
+                            onClick={() => handleUpdateStatus(order._id, 'delivered')}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <FiCheck /> Mark Delivered
+                          </motion.button>
+                        )}
+
+                        <motion.button
+                          className="view-btn"
+                          onClick={() => setSelectedOrder(order)}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          View Details
+                        </motion.button>
+                      </div>
                     </td>
                   </motion.tr>
                 ))}
@@ -150,7 +312,7 @@ const AdminOrders = () => {
           </div>
         ) : (
           <div className="no-orders">
-            <p>No orders found</p>
+            <p>No orders found for this filter/search</p>
           </div>
         )}
       </motion.div>
@@ -162,6 +324,8 @@ const AdminOrders = () => {
           onClose={() => setSelectedOrder(null)}
           onUpdateStatus={handleUpdateStatus}
           nextStatuses={nextStatuses(selectedOrder.orderStatus)}
+          onCopyTracking={copyTracking}
+          onOpenTracking={openTracking}
         />
       )}
     </div>
@@ -189,7 +353,14 @@ const StatusBadge = ({ status }) => {
 }
 
 // Order Details Modal
-const OrderDetailsModal = ({ order, onClose, onUpdateStatus, nextStatuses }) => {
+const OrderDetailsModal = ({
+  order,
+  onClose,
+  onUpdateStatus,
+  nextStatuses,
+  onCopyTracking,
+  onOpenTracking
+}) => {
   return (
     <motion.div
       className="modal-overlay"
@@ -243,7 +414,10 @@ const OrderDetailsModal = ({ order, onClose, onUpdateStatus, nextStatuses }) => 
             <div className="items-list">
               {order.items?.map((item, idx) => (
                 <div key={idx} className="item-row">
-                  <img src={item.image} alt={item.name} />
+                  <img
+                    src={item.image || 'https://via.placeholder.com/150?text=No+Image'}
+                    alt={item.name}
+                  />
                   <div className="item-info">
                     <p className="item-name">{item.name}</p>
                     <p className="item-sku">Qty: {item.quantity}</p>
@@ -274,6 +448,32 @@ const OrderDetailsModal = ({ order, onClose, onUpdateStatus, nextStatuses }) => 
                 <span>Total:</span>
                 <span>₹{order.total?.toFixed(2)}</span>
               </div>
+            </div>
+
+            <div className="tracking-block">
+              <span className="label">Tracking Number:</span>
+              <span className="value">
+                {order.trackingNumber || 'Not generated yet (set status to shipped)'}
+              </span>
+
+              {order.trackingNumber && (
+                  <div className="tracking-modal-actions">
+                    <button
+                      type="button"
+                      className="copy-tracking-btn"
+                      onClick={() => onCopyTracking(order.trackingNumber)}
+                    >
+                      Copy Tracking
+                    </button>
+                    <button
+                      type="button"
+                      className="copy-tracking-btn"
+                      onClick={() => onOpenTracking(order.trackingNumber)}
+                    >
+                      Open Tracking
+                    </button>
+                  </div>
+              )}
             </div>
           </section>
 

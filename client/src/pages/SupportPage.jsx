@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { FiMail, FiPhone, FiMapPin, FiSend, FiAlertCircle } from 'react-icons/fi'
-import axios from 'axios'
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
+import {
+  createSupportTicketRequest,
+  sendContactMessageRequest
+} from '../features/support/api/support.api'
 import '../styles/SupportPage.css'
 
 const SupportPage = () => {
@@ -30,7 +33,7 @@ const SupportPage = () => {
     setLoading(true)
 
     try {
-      await axios.post('/api/support/contact', contactForm)
+      await sendContactMessageRequest(contactForm)
       toast.success('Message sent successfully! We will get back to you soon.')
       setContactForm({
         name: user?.name || '',
@@ -56,7 +59,7 @@ const SupportPage = () => {
     setLoading(true)
 
     try {
-      const response = await axios.post('/api/support/ticket', ticketForm)
+      const response = await createSupportTicketRequest(ticketForm)
       toast.success(`Ticket created! Ticket ID: ${response.data.ticketId}`)
       setTicketForm({
         subject: '',

@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { motion } from 'framer-motion';
 import StarRatings from 'react-star-ratings';
-import { FiThumbsUp, FiThumbsDown } from 'react-icons/fi';
+import { FiThumbsUp } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
+import {
+  addReviewRequest,
+  getProductReviewsRequest,
+  markReviewHelpfulRequest
+} from '../features/reviews/api/reviews.api';
 import '../styles/ReviewSection.css';
 
 const ReviewSection = ({ productId, productRating }) => {
@@ -18,7 +22,6 @@ const ReviewSection = ({ productId, productRating }) => {
     comment: ''
   });
   const { isAuthenticated } = useAuth();
-  const { token } = useAuth();
 
   useEffect(() => {
     fetchReviews();
@@ -27,7 +30,7 @@ const ReviewSection = ({ productId, productRating }) => {
   const fetchReviews = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/api/reviews/product/${productId}`);
+      const response = await getProductReviewsRequest(productId);
       setReviews(response.data.reviews);
       setRatingBreakdown(response.data.ratingBreakdown);
     } catch (err) {
@@ -45,11 +48,7 @@ const ReviewSection = ({ productId, productRating }) => {
     }
 
     try {
-      await axios.post(
-        '/api/reviews/add',
-        { productId, ...formData },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await addReviewRequest({ productId, ...formData });
       setFormData({ rating: 5, title: '', comment: '' });
       setShowForm(false);
       await fetchReviews();
@@ -61,11 +60,7 @@ const ReviewSection = ({ productId, productRating }) => {
 
   const handleMarkHelpful = async (reviewId) => {
     try {
-      await axios.put(
-        `/api/reviews/${reviewId}/helpful`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await markReviewHelpfulRequest(reviewId);
       fetchReviews();
     } catch (err) {
       console.error('Error:', err);

@@ -64,7 +64,7 @@ const CartPage = () => {
                     exit={{ x: 100, opacity: 0 }}
                   >
                     <img
-                      src={item.productId?.images[0]}
+                      src={item.productId?.images?.[0] || item.image || 'https://via.placeholder.com/150?text=No+Image'}
                       alt={item.productId?.name}
                     />
                     <div className="item-details">

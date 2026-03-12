@@ -5,6 +5,22 @@
   border-radius: 10px;
 }
 
+.shipment-meta {
+  margin: 0 2rem 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.shipment-meta p {
+  margin: 0;
+  color: #1f2937;
+}
+
 .tracker-steps {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -194,6 +210,10 @@
 }
 
 @media (max-width: 768px) {
+  .shipment-meta {
+    margin: 0 1rem 1rem;
+  }
+
   .tracker-steps {
     grid-template-columns: 1fr;
     gap: 1.5rem;

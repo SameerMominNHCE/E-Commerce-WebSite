@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FiEdit2, FiTrash2, FiPlus, FiSearch, FiX, FiCheck, FiAlertTriangle } from 'react-icons/fi'
-import axios from 'axios'
-import { useAuth } from '../context/AuthContext'
+import {
+  getAdminProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct
+} from '../features/admin/api/admin.api'
 import { toast } from 'react-toastify'
 import '../styles/AdminProducts.css'
 
 const AdminProducts = () => {
-  const { token } = useAuth()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -38,12 +41,10 @@ const AdminProducts = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true)
-      const response = await axios.get('/api/products', {
-        params: {
-          search: searchTerm,
-          page,
-          limit: 10
-        }
+      const response = await getAdminProducts({
+        search: searchTerm,
+        page,
+        limit: 10
       })
       setProducts(response.data.products)
       setPagination(response.data.pagination)
@@ -124,14 +125,10 @@ const AdminProducts = () => {
 
     try {
       if (editingId) {
-        await axios.put(`/api/products/${editingId}`, formData, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        await updateProduct(editingId, formData)
         toast.success('Product updated successfully!')
       } else {
-        await axios.post('/api/products', formData, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        await createProduct(formData)
         toast.success('Product created successfully!')
       }
       setShowForm(false)
@@ -144,9 +141,7 @@ const AdminProducts = () => {
   const handleDeleteProduct = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await axios.delete(`/api/products/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        await deleteProduct(id)
         toast.success('Product deleted successfully!')
         fetchProducts()
       } catch (err) {

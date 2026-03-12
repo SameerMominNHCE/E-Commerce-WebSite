@@ -6,6 +6,15 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import '../styles/AuthPages.css';
 
+const getApiErrorMessage = (err, fallback) => {
+  const data = err?.response?.data;
+  if (data?.message) return data.message;
+  if (Array.isArray(data?.errors) && data.errors.length > 0) {
+    return data.errors[0].msg || fallback;
+  }
+  return fallback;
+};
+
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,7 +31,7 @@ export const LoginPage = () => {
       toast.success('Logged in successfully!');
       navigate('/');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed');
+      toast.error(getApiErrorMessage(err, 'Login failed'));
     } finally {
       setLoading(false);
     }
@@ -98,7 +107,7 @@ export const RegisterPage = () => {
       toast.success('Account created successfully!');
       navigate('/');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed');
+      toast.error(getApiErrorMessage(err, 'Registration failed'));
     } finally {
       setLoading(false);
     }

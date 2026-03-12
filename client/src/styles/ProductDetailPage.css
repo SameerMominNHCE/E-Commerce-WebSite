@@ -237,6 +237,10 @@
 }
 
 @media (max-width: 768px) {
+  .product-detail-container {
+    padding: 1rem;
+  }
+
   .product-details h1 {
     font-size: 1.5rem;
   }
@@ -249,7 +253,29 @@
     flex-direction: column;
   }
 
+  .product-specs {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
   .add-to-cart-btn {
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-detail-container {
+    margin-top: 0;
+    border-radius: 8px;
+  }
+
+  .product-pricing {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .thumbnail-images img {
+    width: 64px;
+    height: 64px;
   }
 }

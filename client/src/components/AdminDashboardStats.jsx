@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FiPackage, FiShoppingCart, FiUsers, FiTrendingUp, FiAlertTriangle } from 'react-icons/fi'
-import axios from 'axios'
-import { useAuth } from '../context/AuthContext'
+import { FiPackage, FiShoppingCart, FiTrendingUp, FiAlertTriangle } from 'react-icons/fi'
+import { getAdminStats, getRecentAdminOrders } from '../features/admin/api/admin.api'
 import { toast } from 'react-toastify'
 import '../styles/AdminDashboardStats.css'
 
 const AdminDashboardStats = () => {
-  const { token } = useAuth()
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalOrders: 0,
@@ -15,33 +13,33 @@ const AdminDashboardStats = () => {
     totalRevenue: 0
   })
   const [loading, setLoading] = useState(true)
+  const [recentOrders, setRecentOrders] = useState([])
 
   useEffect(() => {
     fetchStats()
+
+    const interval = setInterval(() => {
+      fetchStats()
+    }, 20000)
+
+    return () => clearInterval(interval)
   }, [])
 
   const fetchStats = async () => {
     try {
       setLoading(true)
-      const [productsRes, ordersRes] = await Promise.all([
-        axios.get('/api/products?limit=1000'),
-        axios.get('/api/orders?limit=1000', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ])
-
-      const products = productsRes.data.products || []
-      const orders = ordersRes.data.orders || []
-
-      const lowStock = products.filter(p => p.stock < 10).length
-      const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0)
+      const response = await getAdminStats()
 
       setStats({
-        totalProducts: products.length,
-        totalOrders: orders.length,
-        lowStockProducts: lowStock,
-        totalRevenue: totalRevenue
+        totalProducts: response.data.totalProducts || 0,
+        totalOrders: response.data.totalOrders || 0,
+        lowStockProducts: response.data.lowStockProducts || 0,
+        totalRevenue: response.data.totalRevenue || 0
       })
+
+      const ordersResponse = await getRecentAdminOrders(5)
+
+      setRecentOrders(ordersResponse.data.orders || [])
     } catch (err) {
       toast.error('Failed to fetch statistics')
     } finally {
@@ -140,6 +138,41 @@ const AdminDashboardStats = () => {
                 <span>₹{stats.totalRevenue.toFixed(2)} total revenue</span>
               </div>
             </div>
+          </motion.div>
+
+          <motion.div
+            className="recent-orders-card"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <div className="recent-orders-header">
+              <h3>Recent Orders</h3>
+              <span>Live</span>
+            </div>
+
+            {recentOrders.length > 0 ? (
+              <div className="recent-orders-list">
+                {recentOrders.map((order) => (
+                  <div key={order._id} className="recent-order-item">
+                    <div>
+                      <p className="recent-order-id">{order.orderId}</p>
+                      <p className="recent-order-user">
+                        {order.shippingAddress?.name || order.userId?.name || 'Customer'}
+                      </p>
+                    </div>
+                    <div className="recent-order-meta">
+                      <span className={`order-status-pill ${order.orderStatus}`}>
+                        {order.orderStatus}
+                      </span>
+                      <strong>₹{(order.total || 0).toFixed(2)}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="no-recent-orders">No recent orders</p>
+            )}
           </motion.div>
         </>
       )}

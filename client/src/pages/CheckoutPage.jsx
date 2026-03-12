@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
+import { createOrderRequest } from '../features/orders/api/orders.api';
 import '../styles/CheckoutPage.css';
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const { cart, clearCart } = useCart();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: user?.name || '',
@@ -76,9 +76,7 @@ const CheckoutPage = () => {
         paymentMethod: formData.paymentMethod
       };
 
-      const response = await axios.post('/api/orders/create', orderData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await createOrderRequest(orderData);
 
       toast.success('Order placed successfully!');
       await clearCart();
@@ -213,7 +211,10 @@ const CheckoutPage = () => {
           <div className="summary-items">
             {cart.items.map(item => (
               <div key={item._id} className="summary-item">
-                <img src={item.productId?.images[0]} alt={item.productId?.name} />
+                <img
+                  src={item.productId?.images?.[0] || item.image || 'https://via.placeholder.com/150?text=No+Image'}
+                  alt={item.productId?.name}
+                />
                 <div>
                   <p>{item.productId?.name}</p>
                   <p className="qty">Qty: {item.quantity}</p>

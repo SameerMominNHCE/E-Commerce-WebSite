@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const errorHandler = require('./middleware/errorHandler');
 require('dotenv').config();
 
 const app = express();
@@ -27,13 +28,7 @@ app.use('/api/reviews', require('./routes/reviews'));
 app.use('/api/support', require('./routes/support'));
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    message: 'Something went wrong!', 
-    error: err.message 
-  });
-});
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

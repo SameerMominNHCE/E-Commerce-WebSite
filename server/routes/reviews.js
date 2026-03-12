@@ -1,116 +1,49 @@
 const express = require('express');
-const Review = require('../models/Review');
-const Product = require('../models/Product');
+const { body, param, query } = require('express-validator');
 const { auth } = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const reviewsController = require('../controllers/reviewsController');
 
 const router = express.Router();
 
 // Get product reviews
-router.get('/product/:productId', async (req, res) => {
-  try {
-    const { page = 1, limit = 10, sortBy = 'recent' } = req.query;
-
-    let sortOption = {};
-    switch (sortBy) {
-      case 'highest':
-        sortOption = { rating: -1 };
-        break;
-      case 'lowest':
-        sortOption = { rating: 1 };
-        break;
-      case 'helpful':
-        sortOption = { helpful: -1 };
-        break;
-      default:
-        sortOption = { createdAt: -1 };
-    }
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const reviews = await Review.find({ productId: req.params.productId })
-      .populate('userId', 'name profileImage')
-      .sort(sortOption)
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    const total = await Review.countDocuments({ productId: req.params.productId });
-
-    // Get rating breakdown
-    const ratingBreakdown = await Review.aggregate([
-      { $match: { productId: mongoose.Types.ObjectId(req.params.productId) } },
-      { $group: { _id: '$rating', count: { $sum: 1 } } }
-    ]);
-
-    res.json({
-      reviews,
-      ratingBreakdown,
-      pagination: {
-        total,
-        page: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit))
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-});
+router.get(
+  '/product/:productId',
+  [
+    param('productId').isMongoId().withMessage('Invalid product ID'),
+    query('page').optional().isInt({ min: 1 }).withMessage('Page must be at least 1'),
+    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+    query('sortBy')
+      .optional()
+      .isIn(['recent', 'highest', 'lowest', 'helpful'])
+      .withMessage('Invalid sort option')
+  ],
+  validate,
+  reviewsController.getProductReviews
+);
 
 // Add review
-router.post('/add', auth, async (req, res) => {
-  try {
-    const { productId, rating, title, comment, images } = req.body;
-
-    // Check if user has purchased this product
-    const hasOrdered = await Order.findOne({
-      userId: req.userId,
-      'items.productId': productId
-    });
-
-    const review = new Review({
-      productId,
-      userId: req.userId,
-      rating,
-      title,
-      comment,
-      images,
-      verified: !!hasOrdered
-    });
-
-    await review.save();
-
-    // Update product rating
-    const reviews = await Review.find({ productId });
-    const avgRating = reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length;
-
-    await Product.findByIdAndUpdate(
-      productId,
-      {
-        rating: Math.round(avgRating * 10) / 10,
-        reviews: reviews.length
-      }
-    );
-
-    await review.populate('userId', 'name profileImage');
-
-    res.status(201).json(review);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-});
+router.post(
+  '/add',
+  auth,
+  [
+    body('productId').isMongoId().withMessage('Invalid product ID'),
+    body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
+    body('title').optional().isString().isLength({ min: 1, max: 120 }),
+    body('comment').optional().isString().isLength({ min: 1, max: 2000 }),
+    body('images').optional().isArray({ max: 5 }).withMessage('Images must be an array')
+  ],
+  validate,
+  reviewsController.addReview
+);
 
 // Mark review as helpful
-router.put('/:reviewId/helpful', auth, async (req, res) => {
-  try {
-    const review = await Review.findByIdAndUpdate(
-      req.params.reviewId,
-      { $inc: { helpful: 1 } },
-      { new: true }
-    );
-
-    res.json(review);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-});
+router.put(
+  '/:reviewId/helpful',
+  auth,
+  [param('reviewId').isMongoId().withMessage('Invalid review ID')],
+  validate,
+  reviewsController.markHelpful
+);
 
 module.exports = router;

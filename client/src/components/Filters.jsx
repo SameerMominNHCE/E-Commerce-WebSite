@@ -1,90 +1,107 @@
-import React from "react";
+import React, { useEffect, useState } from 'react';
+import '../styles/Filters.css';
 
-const Filters = ({ onFilterChange, currentFilters }) => {
+const defaultFilters = {
+  search: '',
+  category: '',
+  minPrice: '',
+  maxPrice: '',
+  sortBy: 'rating'
+};
+
+const Filters = ({ currentFilters, onApplyFilters, onClose }) => {
+  const [draftFilters, setDraftFilters] = useState(currentFilters || defaultFilters);
+
+  useEffect(() => {
+    setDraftFilters(currentFilters || defaultFilters);
+  }, [currentFilters]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    onFilterChange &&
-      onFilterChange({
-        ...currentFilters,
-        [name]: value,
-      });
+    setDraftFilters((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleApply = () => {
+    onApplyFilters && onApplyFilters(draftFilters);
+  };
+
+  const handleClear = () => {
+    setDraftFilters(defaultFilters);
+    onApplyFilters && onApplyFilters(defaultFilters);
   };
 
   return (
-    <div
-      className="filters"
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "10px",
-        marginBottom: "16px",
-        padding: "10px",
-        borderRadius: "8px",
-        border: "1px solid #e2e2e2",
-      }}
-    >
-      <div>
-        <label style={{ fontSize: "14px" }}>Search</label>
-        <input
-          name="search"
-          value={currentFilters?.search || ""}
-          onChange={handleChange}
-          placeholder="Search products..."
-          style={{ display: "block", padding: "6px 8px", borderRadius: "6px" }}
-        />
+    <div className="filters-popover-card">
+      <div className="filters-header-row">
+        <h3>Filter Products</h3>
+        <button type="button" className="filters-close-btn" onClick={onClose}>
+          Close
+        </button>
       </div>
 
-      <div>
-        <label style={{ fontSize: "14px" }}>Category</label>
-        <select
-          name="category"
-          value={currentFilters?.category || ""}
-          onChange={handleChange}
-          style={{ display: "block", padding: "6px 8px", borderRadius: "6px" }}
-        >
-          <option value="">All</option>
-          <option>Electronics</option>
-          <option>Clothing</option>
-          <option>Accessories</option>
-        </select>
+      <div className="filters-grid">
+        <div className="filter-field">
+          <label>Search</label>
+          <input
+            name="search"
+            value={draftFilters.search}
+            onChange={handleChange}
+            placeholder="Search products..."
+          />
+        </div>
+
+        <div className="filter-field">
+          <label>Category</label>
+          <select name="category" value={draftFilters.category} onChange={handleChange}>
+            <option value="">All</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Clothing">Clothing</option>
+            <option value="Accessories">Accessories</option>
+          </select>
+        </div>
+
+        <div className="filter-field">
+          <label>Min Price</label>
+          <input
+            type="number"
+            name="minPrice"
+            value={draftFilters.minPrice}
+            onChange={handleChange}
+            placeholder="0"
+          />
+        </div>
+
+        <div className="filter-field">
+          <label>Max Price</label>
+          <input
+            type="number"
+            name="maxPrice"
+            value={draftFilters.maxPrice}
+            onChange={handleChange}
+            placeholder="10000"
+          />
+        </div>
+
+        <div className="filter-field filter-field-full">
+          <label>Sort By</label>
+          <select name="sortBy" value={draftFilters.sortBy} onChange={handleChange}>
+            <option value="rating">Rating</option>
+            <option value="priceAsc">Price: Low to High</option>
+            <option value="priceDesc">Price: High to Low</option>
+          </select>
+        </div>
       </div>
 
-      <div>
-        <label style={{ fontSize: "14px" }}>Min Price</label>
-        <input
-          type="number"
-          name="minPrice"
-          value={currentFilters?.minPrice || ""}
-          onChange={handleChange}
-          placeholder="0"
-          style={{ display: "block", padding: "6px 8px", borderRadius: "6px" }}
-        />
-      </div>
-
-      <div>
-        <label style={{ fontSize: "14px" }}>Max Price</label>
-        <input
-          type="number"
-          name="maxPrice"
-          value={currentFilters?.maxPrice || ""}
-          onChange={handleChange}
-          placeholder="10000"
-          style={{ display: "block", padding: "6px 8px", borderRadius: "6px" }}
-        />
-      </div>
-
-      <div>
-        <label style={{ fontSize: "14px" }}>Sort By</label>
-        <select
-          name="sortBy"
-          value={currentFilters?.sortBy || "rating"}
-          onChange={handleChange}
-          style={{ display: "block", padding: "6px 8px", borderRadius: "6px" }}
-        >
-          <option value="rating">Rating</option>
-          <option value="priceAsc">Price: Low → High</option>
-          <option value="priceDesc">Price: High → Low</option>
-        </select>
+      <div className="filters-actions-row">
+        <button type="button" className="filters-clear-btn" onClick={handleClear}>
+          Clear
+        </button>
+        <button type="button" className="filters-apply-btn" onClick={handleApply}>
+          Apply Filters
+        </button>
       </div>
     </div>
   );

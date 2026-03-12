@@ -418,6 +418,36 @@
   object-fit: cover;
 }
 
+@media (max-width: 768px) {
+  .products-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .add-product-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .products-table {
+    min-width: 760px;
+  }
+
+  .modal-overlay {
+    padding: 1rem;
+  }
+
+  .modal-header,
+  .product-form {
+    padding: 1rem;
+  }
+
+  .form-grid,
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
 .remove-image-btn {
   position: absolute;
   top: 5px;

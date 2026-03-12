@@ -7,16 +7,16 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { CartProvider, useCart } from './context/CartContext'
 
 import Navbar from './components/Navbar'
-import HomePage from './pages/HomePage'
 import ProductsPage from './pages/ProductsPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import CartPage from './pages/CartPage'
 import CheckoutPage from './pages/CheckoutPage'
 import OrdersPage from './pages/OrdersPage'
+import OrderDetailPage from './pages/OrderDetailPage'
 import ProfilePage from './pages/ProfilePage'
 import { LoginPage, RegisterPage } from './pages/AuthPages'
 import SupportPage from './pages/SupportPage'
-import AdminDashboard from './pages/AdminDashboard'
+import AdminDashboardPage from './features/admin/pages/AdminDashboardPage'
 
 import './App.css'
 
@@ -61,7 +61,7 @@ const AppContent = () => {
       <Navbar />
 
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<ProductsPage />} />
 
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/product/:id" element={<ProductDetailPage />} />
@@ -85,6 +85,22 @@ const AppContent = () => {
           }
         />
         <Route
+          path="/order/:id"
+          element={
+            <ProtectedRoute>
+              <OrderDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/order-confirmation/:id"
+          element={
+            <ProtectedRoute>
+              <OrderDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/profile"
           element={
             <ProtectedRoute>
@@ -98,7 +114,7 @@ const AppContent = () => {
           path="/admin"
           element={
             <AdminRoute>
-              <AdminDashboard />
+              <AdminDashboardPage />
             </AdminRoute>
           }
         />

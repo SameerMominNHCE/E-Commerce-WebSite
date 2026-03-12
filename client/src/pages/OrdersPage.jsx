@@ -1,29 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { motion } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
 import OrderTracker from '../components/OrderTracker';
+import { cancelOrderRequest, getOrdersRequest } from '../features/orders/api/orders.api';
+import { useCart } from '../context/CartContext';
+import { toast } from 'react-toastify';
 import '../styles/OrdersPage.css';
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
-  const { token } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [reorderingId, setReorderingId] = useState('');
+  const { addToCart, fetchCart } = useCart();
 
   useEffect(() => {
     fetchOrders();
+  }, [filter]);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchOrders();
+    }, 30000);
+
+    return () => clearInterval(intervalId);
   }, [filter]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       const params = filter !== 'all' ? { status: filter } : {};
-      const response = await axios.get('/api/orders', {
-        params,
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await getOrdersRequest(params);
       setOrders(response.data.orders);
     } catch (err) {
       console.error('Error fetching orders:', err);
@@ -35,11 +43,7 @@ const OrdersPage = () => {
   const handleCancelOrder = async (orderId) => {
     if (window.confirm('Are you sure you want to cancel this order?')) {
       try {
-        const response = await axios.put(
-          `/api/orders/${orderId}/cancel`,
-          {},
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const response = await cancelOrderRequest(orderId);
         setOrders(orders.map(o => o._id === orderId ? response.data : o));
       } catch (err) {
         alert('Failed to cancel order');
@@ -47,9 +51,54 @@ const OrdersPage = () => {
     }
   };
 
+  const handleReorder = async (order) => {
+    try {
+      setReorderingId(order._id);
+      let successCount = 0;
+
+      for (const item of order.items) {
+        try {
+          await addToCart(item.productId, item.quantity);
+          successCount += 1;
+        } catch (err) {
+          // Continue so one unavailable item does not block reordering others.
+        }
+      }
+
+      await fetchCart();
+
+      if (successCount === 0) {
+        toast.error('Could not add items to cart from this order.');
+      } else if (successCount < order.items.length) {
+        toast.warning(`Added ${successCount}/${order.items.length} items to cart.`);
+      } else {
+        toast.success('All items added to cart.');
+      }
+    } finally {
+      setReorderingId('');
+    }
+  };
+
+  const filteredOrders = orders.filter((order) => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return true;
+
+    const orderIdMatch = order.orderId?.toLowerCase().includes(query);
+    const itemMatch = order.items?.some((item) => item.name?.toLowerCase().includes(query));
+    return orderIdMatch || itemMatch;
+  });
+
   return (
     <div className="orders-page">
       <h1>My Orders</h1>
+
+      <input
+        type="text"
+        className="orders-search"
+        placeholder="Search by order ID or product name"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
 
       <div className="filter-buttons">
         {['all', 'pending', 'confirmed', 'shipped', 'delivered'].map(status => (
@@ -65,13 +114,13 @@ const OrdersPage = () => {
 
       {loading ? (
         <div className="loading">Loading orders...</div>
-      ) : orders.length > 0 ? (
+      ) : filteredOrders.length > 0 ? (
         <motion.div
           className="orders-list"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          {orders.map(order => (
+          {filteredOrders.map(order => (
             <motion.div
               key={order._id}
               className="order-card"
@@ -90,7 +139,12 @@ const OrdersPage = () => {
                 </span>
               </div>
 
-              <OrderTracker status={order.orderStatus} history={order.statusHistory} />
+              <OrderTracker
+                status={order.orderStatus}
+                history={order.statusHistory}
+                trackingNumber={order.trackingNumber}
+                estimatedDelivery={order.estimatedDelivery}
+              />
 
               <div className="order-items">
                 <h4>Items</h4>
@@ -127,6 +181,13 @@ const OrdersPage = () => {
 
               <div className="order-actions">
                 <Link to={`/order/${order._id}`}>View Details</Link>
+                <button
+                  className="reorder-btn"
+                  onClick={() => handleReorder(order)}
+                  disabled={reorderingId === order._id}
+                >
+                  {reorderingId === order._id ? 'Reordering...' : 'Reorder'}
+                </button>
                 {(order.orderStatus === 'pending' || order.orderStatus === 'confirmed') && (
                   <button
                     className="cancel-btn"
@@ -141,8 +202,8 @@ const OrdersPage = () => {
         </motion.div>
       ) : (
         <div className="no-orders">
-          <h2>No orders found</h2>
-          <p>Start shopping to place your first order!</p>
+          <h2>No matching orders found</h2>
+          <p>Try changing filters or search text.</p>
           <Link to="/products">Browse Products</Link>
         </div>
       )}

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
 import { motion } from 'framer-motion';
 import StarRatings from 'react-star-ratings';
-import { FiShoppingCart, FiCheck, FiX } from 'react-icons/fi';
+import { FiShoppingCart, FiCheck } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { useCart } from '../context/CartContext';
 import ReviewSection from '../components/ReviewSection';
+import { getProductByIdRequest } from '../features/products/api/products.api';
 import '../styles/ProductDetailPage.css';
 
 const ProductDetailPage = () => {
@@ -23,7 +23,7 @@ const ProductDetailPage = () => {
 
   const fetchProduct = async () => {
     try {
-      const response = await axios.get(`/api/products/${id}`);
+      const response = await getProductByIdRequest(id);
       setProduct(response.data);
     } catch (err) {
       console.error('Error fetching product:', err);

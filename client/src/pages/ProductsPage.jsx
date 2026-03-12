@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import axios from 'axios';
 import { motion } from 'framer-motion';
-import StarRatings from 'react-star-ratings';
+import { FiFilter } from 'react-icons/fi';
 import ProductCard from '../components/ProductCard';
 import Filters from '../components/Filters';
+import { getProductsRequest } from '../features/products/api/products.api';
 
 import '../styles/ProductsPage.css';
 
@@ -21,6 +21,19 @@ const ProductsPage = () => {
   });
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({});
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (filters.search?.trim()) count += 1;
+    if (filters.category) count += 1;
+    if (filters.minPrice !== '' && filters.minPrice !== null && filters.minPrice !== undefined) count += 1;
+    if (filters.maxPrice !== '' && filters.maxPrice !== null && filters.maxPrice !== undefined) count += 1;
+    if (filters.sortBy && filters.sortBy !== 'rating') count += 1;
+    return count;
+  };
+
+  const activeFilterCount = getActiveFilterCount();
 
   useEffect(() => {
     fetchProducts();
@@ -29,9 +42,7 @@ const ProductsPage = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/products', {
-        params: { ...filters, page, limit: 12 }
-      });
+      const response = await getProductsRequest({ ...filters, page, limit: 12 });
       setProducts(response.data.products);
       setPagination(response.data.pagination);
     } catch (err) {
@@ -41,21 +52,46 @@ const ProductsPage = () => {
     }
   };
 
-  const handleFilterChange = (newFilters) => {
+  const handleFilterApply = (newFilters) => {
     setFilters(newFilters);
+    setSearchParams(newFilters);
     setPage(1);
+    setIsFilterOpen(false);
   };
 
   return (
     <div className="products-page">
       <div className="products-container">
-        <Filters onFilterChange={handleFilterChange} currentFilters={filters} />
-
         <div className="products-section">
           <div className="products-header">
-            <h1>Products</h1>
-            <p>{pagination.total} products found</p>
+            <div>
+              <h1>Products</h1>
+              <p>{pagination.total || 0} products found</p>
+            </div>
+
+            <div className="products-header-actions">
+              <button
+                type="button"
+                className="filter-toggle-btn"
+                onClick={() => setIsFilterOpen((prev) => !prev)}
+              >
+                <FiFilter /> Filter
+                {activeFilterCount > 0 && (
+                  <span className="active-filter-count">{activeFilterCount}</span>
+                )}
+              </button>
+            </div>
           </div>
+
+          {isFilterOpen && (
+            <div className="products-filter-panel">
+              <Filters
+                currentFilters={filters}
+                onApplyFilters={handleFilterApply}
+                onClose={() => setIsFilterOpen(false)}
+              />
+            </div>
+          )}
 
           {loading ? (
             <div className="loading">Loading...</div>

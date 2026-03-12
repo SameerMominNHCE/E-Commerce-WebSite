@@ -353,6 +353,23 @@
 }
 
 @media (max-width: 768px) {
+  .orders-table {
+    min-width: 760px;
+  }
+
+  .order-details {
+    padding: 1rem;
+  }
+
+  .item-row {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .item-row img {
+    margin: 0 auto;
+  }
+
   .detail-grid {
     grid-template-columns: 1fr;
   }
@@ -369,4 +386,143 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+.order-actions-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ship-btn {
+  padding: 0.5rem 0.8rem;
+  background: #059669;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: bold;
+}
+
+.ship-btn:hover {
+  background: #047857;
+}
+
+.deliver-btn {
+  padding: 0.5rem 0.8rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: bold;
+}
+
+.deliver-btn:hover {
+  background: #1d4ed8;
+}
+
+.tracking-col {
+  max-width: 180px;
+}
+
+.tracking-chip {
+  display: inline-block;
+  background: #eef2ff;
+  color: #4338ca;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.75rem;
+  font-family: monospace;
+}
+
+.tracking-empty {
+  color: #9ca3af;
+}
+
+.tracking-block {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.65rem 0.8rem;
+  border-radius: 6px;
+  background: #f3f4f6;
+}
+
+.tracking-block .label {
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.tracking-block .value {
+  color: #374151;
+  font-family: monospace;
+}
+
+.tracking-search {
+  min-width: 260px;
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+}
+
+.date-filter {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.export-btn {
+  padding: 0.6rem 0.9rem;
+  border: none;
+  border-radius: 8px;
+  background: #111827;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.export-btn:hover {
+  background: #000000;
+}
+
+.tracking-with-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.copy-tracking-btn {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.copy-tracking-btn:hover {
+  background: #f3f4f6;
+}
+
+.tracking-modal-actions {
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }

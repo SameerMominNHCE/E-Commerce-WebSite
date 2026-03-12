@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useCallback } from 'react'
-import axios from 'axios'
 import { useAuth } from './AuthContext'
+import {
+  addToCartRequest,
+  clearCartRequest,
+  fetchCartRequest,
+  removeCartItemRequest,
+  updateCartItemRequest
+} from '../features/cart/api/cart.api'
 
 const CartContext = createContext()
 
@@ -13,9 +19,7 @@ export const CartProvider = ({ children }) => {
     if (!token) return
     try {
       setLoading(true)
-      const response = await axios.get('/api/cart', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await fetchCartRequest()
       setCart(response.data)
     } catch (err) {
       console.error('Error fetching cart:', err)
@@ -27,11 +31,7 @@ export const CartProvider = ({ children }) => {
   const addToCart = async (productId, quantity = 1) => {
     if (!token) return
     try {
-      const response = await axios.post(
-        '/api/cart/add',
-        { productId, quantity },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      const response = await addToCartRequest({ productId, quantity })
       setCart(response.data)
       return true
     } catch (err) {
@@ -42,11 +42,7 @@ export const CartProvider = ({ children }) => {
   const updateCartItem = async (itemId, quantity) => {
     if (!token) return
     try {
-      const response = await axios.put(
-        `/api/cart/update/${itemId}`,
-        { quantity },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      const response = await updateCartItemRequest(itemId, { quantity })
       setCart(response.data)
     } catch (err) {
       throw err
@@ -56,9 +52,7 @@ export const CartProvider = ({ children }) => {
   const removeFromCart = async (itemId) => {
     if (!token) return
     try {
-      const response = await axios.delete(`/api/cart/remove/${itemId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await removeCartItemRequest(itemId)
       setCart(response.data)
     } catch (err) {
       throw err
@@ -68,9 +62,7 @@ export const CartProvider = ({ children }) => {
   const clearCart = async () => {
     if (!token) return
     try {
-      await axios.delete('/api/cart/clear', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await clearCartRequest()
       setCart({ items: [] })
     } catch (err) {
       throw err
