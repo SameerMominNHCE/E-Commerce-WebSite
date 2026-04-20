@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Database Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://https://e-commerce-website-4ufa.onrender.com', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
